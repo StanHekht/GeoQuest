@@ -66,10 +66,16 @@ function App() {
     const saved = localStorage.getItem('visitedStates');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Quiz state
   const [quizMode, setQuizMode] = useState(false);
   const [quizState, setQuizState] = useState(null);
   const [options, setOptions] = useState([]);
   const [score, setScore] = useState(0);
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [feedback, setFeedback] = useState('');
+  const [showFinishModal, setShowFinishModal] = useState(false);
+  const QUIZ_LENGTH = 10;
 
   useEffect(() => {
     fetch(GEOJSON_URL)
@@ -122,6 +128,9 @@ function App() {
   // --- Quiz functions ---
   const startQuiz = () => {
     setScore(0);
+    setQuestionIndex(0);
+    setFeedback('');
+    setShowFinishModal(false);
     nextQuestion();
     setQuizMode(true);
   };
@@ -140,17 +149,32 @@ function App() {
 
     setQuizState(correct);
     setOptions(choices);
+    setFeedback(''); // reset feedback for new question
   };
 
   const handleAnswer = (selected) => {
     if (selected === quizState) {
-      alert('Correct!');
       setScore((prev) => prev + 1);
+      setFeedback('✅ Correct!');
     } else {
-      alert(`Wrong! The correct answer was ${quizState}`);
+      setFeedback(`❌ Wrong! The correct answer was ${quizState}.`);
     }
-    nextQuestion();
+
+    if (questionIndex + 1 >= QUIZ_LENGTH) {
+      setTimeout(() => {
+        setShowFinishModal(true);
+        setQuizMode(false);
+        setQuizState(null);
+        setOptions([]);
+        setFeedback('');
+      }, 800);
+    } else {
+      setQuestionIndex((prev) => prev + 1);
+      setTimeout(nextQuestion, 800); // small delay to show feedback
+    }
   };
+
+  const closeModal = () => setShowFinishModal(false);
 
   const allStates = Object.keys(STATE_ABBREVIATIONS).sort();
 
@@ -170,7 +194,11 @@ function App() {
             {quizMode ? 'Exit Quiz' : 'Start Quiz'}
           </button>
         </div>
-        {quizMode && <p>Score: {score}</p>}
+        {quizMode && (
+          <p>
+            Score: {score} / {QUIZ_LENGTH}
+          </p>
+        )}
         {!quizMode && (
           <ul>
             {visited.map((state) => (
@@ -219,7 +247,10 @@ function App() {
 
       {quizMode && options.length > 0 && (
         <div className='sidebar right'>
-          <h3>Which state is highlighted?</h3>
+          <h3>
+            Question {questionIndex + 1} of {QUIZ_LENGTH}
+          </h3>
+          <p>Which state is highlighted?</p>
           <ul>
             {options.map((opt) => (
               <li key={opt} onClick={() => handleAnswer(opt)}>
@@ -227,6 +258,20 @@ function App() {
               </li>
             ))}
           </ul>
+          {feedback && <p className='feedback'>{feedback}</p>}
+        </div>
+      )}
+
+      {/* Custom Finish Modal */}
+      {showFinishModal && (
+        <div className='modal-overlay'>
+          <div className='modal'>
+            <h2>Quiz Finished!</h2>
+            <p>
+              Your score: {score} / {QUIZ_LENGTH}
+            </p>
+            <button onClick={closeModal}>Close</button>
+          </div>
         </div>
       )}
     </div>
