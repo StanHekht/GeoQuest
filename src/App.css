@@ -15,12 +15,10 @@
 
 .sidebar.left {
   border-right: none;
-  border-left: 0;
 }
 
 .sidebar.right {
   border-left: none;
-  border-right: 0;
 }
 
 .sidebar h3 {
@@ -71,16 +69,4 @@ button:hover {
 /* Remove Leaflet focus outline */
 .leaflet-interactive:focus {
   outline: none;
-}
-
-/* State labels */
-.state-label span {
-  font-weight: bold;
-  color: black;
-  text-align: center;
-  white-space: nowrap;
-  text-shadow: 0 0 2px white;
-  pointer-events: none;
-  display: inline-block;
-  transform: translate(-50%, -50%);
 }

@@ -1,20 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import {
-  MapContainer,
-  TileLayer,
-  GeoJSON,
-  Marker,
-  useMapEvents,
-} from 'react-leaflet';
-import L from 'leaflet';
-import * as turf from '@turf/turf';
+import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import './App.css';
 
 const GEOJSON_URL =
   'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json';
 
-// State abbreviations
+// State abbreviations (still useful for sidebars)
 const STATE_ABBREVIATIONS = {
   Alabama: 'AL',
   Alaska: 'AK',
@@ -69,49 +61,6 @@ const STATE_ABBREVIATIONS = {
   'District of Columbia': 'DC',
 };
 
-// Manual positions for small states
-const SMALL_STATE_POSITIONS = {
-  Delaware: [39.0, -75.5],
-  Maryland: [39.0, -76.8],
-  'District of Columbia': [38.9, -77.0],
-  'Rhode Island': [41.6, -71.5],
-  Connecticut: [41.6, -72.7],
-  'New Jersey': [40.1, -74.7],
-  Hawaii: [20.7, -157.5],
-};
-
-// Component for rendering state labels with dynamic font
-const StateLabels = ({ geoJson, zoom }) => {
-  if (!geoJson) return null;
-
-  return (
-    <>
-      {geoJson.features.map((feature) => {
-        const name = feature.properties.name;
-        const abbr = STATE_ABBREVIATIONS[name] || name;
-
-        const latlng =
-          SMALL_STATE_POSITIONS[name] ||
-          (() => {
-            const point = turf.pointOnFeature(feature);
-            const [lng, lat] = point.geometry.coordinates;
-            return [lat, lng];
-          })();
-
-        const fontSize = Math.min(zoom * 2, 16);
-
-        const icon = L.divIcon({
-          className: 'state-label',
-          html: `<span style="font-size:${fontSize}px">${abbr}</span>`,
-          iconSize: [0, 0],
-        });
-
-        return <Marker key={name} position={latlng} icon={icon} />;
-      })}
-    </>
-  );
-};
-
 function App() {
   const [geoJson, setGeoJson] = useState(null);
   const [visited, setVisited] = useState(() => {
@@ -137,9 +86,7 @@ function App() {
   };
 
   const clearAll = () => setVisited([]);
-
   const selectAll = () => setVisited(Object.keys(STATE_ABBREVIATIONS));
-
   const copyToClipboard = () => {
     if (visited.length > 0) {
       navigator.clipboard.writeText(visited.join(', '));
@@ -162,13 +109,17 @@ function App() {
     };
   };
 
-  // Sorted list of all states
   const allStates = Object.keys(STATE_ABBREVIATIONS).sort();
 
   return (
     <div className='container'>
       <div className='sidebar left'>
-        <h3>Visited States ({visited.length}/50)</h3>
+        <h3>
+          Visited: {visited.filter((s) => s !== 'District of Columbia').length}{' '}
+          / 50 states
+          {visited.includes('District of Columbia') ? ' + DC' : ''}
+        </h3>
+
         <div className='buttons'>
           <button onClick={clearAll}>Clear</button>
           <button onClick={selectAll}>Select All</button>
@@ -199,14 +150,11 @@ function App() {
             url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
           />
           {geoJson && (
-            <>
-              <GeoJSON
-                data={geoJson}
-                style={style}
-                onEachFeature={onEachFeature}
-              />
-              <StateLabels geoJson={geoJson} zoom={zoom} />
-            </>
+            <GeoJSON
+              data={geoJson}
+              style={style}
+              onEachFeature={onEachFeature}
+            />
           )}
         </MapContainer>
       </div>
