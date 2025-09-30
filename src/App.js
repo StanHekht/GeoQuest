@@ -6,7 +6,6 @@ import './App.css';
 const GEOJSON_URL =
   'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json';
 
-// State abbreviations (still useful for sidebars)
 const STATE_ABBREVIATIONS = {
   Alabama: 'AL',
   Alaska: 'AK',
@@ -67,7 +66,10 @@ function App() {
     const saved = localStorage.getItem('visitedStates');
     return saved ? JSON.parse(saved) : [];
   });
-  const [zoom, setZoom] = useState(4);
+  const [quizMode, setQuizMode] = useState(false);
+  const [quizState, setQuizState] = useState(null);
+  const [options, setOptions] = useState([]);
+  const [score, setScore] = useState(0);
 
   useEffect(() => {
     fetch(GEOJSON_URL)
@@ -101,12 +103,53 @@ function App() {
 
   const style = (feature) => {
     const name = feature.properties.name;
+    if (quizMode && name === quizState) {
+      return {
+        fillColor: 'yellow',
+        weight: 2,
+        color: 'black',
+        fillOpacity: 0.6,
+      };
+    }
     return {
       fillColor: visited.includes(name) ? 'blue' : 'lightgray',
       weight: 1,
       color: 'black',
       fillOpacity: 0.6,
     };
+  };
+
+  // --- Quiz functions ---
+  const startQuiz = () => {
+    setScore(0);
+    nextQuestion();
+    setQuizMode(true);
+  };
+
+  const nextQuestion = () => {
+    if (!geoJson) return;
+    const allStates = geoJson.features.map((f) => f.properties.name);
+    const correct = allStates[Math.floor(Math.random() * allStates.length)];
+
+    const wrongStates = allStates
+      .filter((s) => s !== correct)
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 3);
+
+    const choices = [...wrongStates, correct].sort(() => 0.5 - Math.random());
+
+    setQuizState(correct);
+    setOptions(choices);
+  };
+
+  const handleAnswer = (selected) => {
+    if (selected === quizState) {
+      alert('Correct!');
+      setScore((prev) => prev + 1);
+    } else {
+      alert(`Wrong! The correct answer was ${quizState}`);
+    }
+    nextQuestion();
   };
 
   const allStates = Object.keys(STATE_ABBREVIATIONS).sort();
@@ -119,15 +162,16 @@ function App() {
           / 50 states
           {visited.includes('District of Columbia') ? ' + DC' : ''}
         </h3>
-
         <div className='buttons'>
           <button onClick={clearAll}>Clear</button>
           <button onClick={selectAll}>Select All</button>
           <button onClick={copyToClipboard}>Copy</button>
+          <button onClick={quizMode ? () => setQuizMode(false) : startQuiz}>
+            {quizMode ? 'Exit Quiz' : 'Start Quiz'}
+          </button>
         </div>
-        {visited.length === 0 ? (
-          <p>No states selected — click a state on the map or right sidebar.</p>
-        ) : (
+        {quizMode && <p>Score: {score}</p>}
+        {!quizMode && (
           <ul>
             {visited.map((state) => (
               <li key={state}>{state}</li>
@@ -139,11 +183,8 @@ function App() {
       <div className='map'>
         <MapContainer
           center={[37.8, -96]}
-          zoom={zoom}
+          zoom={4}
           style={{ height: '100%', width: '100%' }}
-          whenCreated={(map) => {
-            map.on('zoomend', () => setZoom(map.getZoom()));
-          }}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
@@ -159,20 +200,35 @@ function App() {
         </MapContainer>
       </div>
 
-      <div className='sidebar right'>
-        <h3>All States</h3>
-        <ul>
-          {allStates.map((state) => (
-            <li
-              key={state}
-              className={visited.includes(state) ? 'selected' : ''}
-              onClick={() => toggleState(state)}
-            >
-              {state}
-            </li>
-          ))}
-        </ul>
-      </div>
+      {!quizMode && (
+        <div className='sidebar right'>
+          <h3>All States</h3>
+          <ul>
+            {allStates.map((state) => (
+              <li
+                key={state}
+                className={visited.includes(state) ? 'selected' : ''}
+                onClick={() => toggleState(state)}
+              >
+                {state}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {quizMode && options.length > 0 && (
+        <div className='sidebar right'>
+          <h3>Which state is highlighted?</h3>
+          <ul>
+            {options.map((opt) => (
+              <li key={opt} onClick={() => handleAnswer(opt)}>
+                {opt}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
