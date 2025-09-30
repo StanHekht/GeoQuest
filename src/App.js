@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import './App.css';
 
 const GEOJSON_URL =
   'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json';
@@ -28,9 +29,22 @@ function App() {
     );
   };
 
+  const clearAll = () => {
+    setVisited([]);
+  };
+
+  const copyToClipboard = () => {
+    if (visited.length > 0) {
+      navigator.clipboard.writeText(visited.join(', '));
+      alert('Copied visited states to clipboard!');
+    }
+  };
+
   const onEachFeature = (feature, layer) => {
     const name = feature.properties.name;
-    layer.on('click', () => toggleState(name));
+    layer.on({
+      click: () => toggleState(name),
+    });
   };
 
   const style = (feature) => {
@@ -44,23 +58,45 @@ function App() {
   };
 
   return (
-    <div style={{ height: '100vh', width: '100%' }}>
-      <h2 style={{ textAlign: 'center' }}>
-        States I Visited ({visited.length}/50)
-      </h2>
-      <MapContainer
-        center={[37.8, -96]}
-        zoom={4}
-        style={{ height: '90%', width: '100%' }}
-      >
-        <TileLayer
-          attribution='&copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors'
-          url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-        />
-        {geoJson && (
-          <GeoJSON data={geoJson} style={style} onEachFeature={onEachFeature} />
+    <div className='container'>
+      <div className='sidebar'>
+        <h3>Visited States ({visited.length}/50)</h3>
+
+        <div className='buttons'>
+          <button onClick={clearAll}>Clear</button>
+          <button onClick={copyToClipboard}>Copy</button>
+        </div>
+
+        {visited.length === 0 ? (
+          <p>No states selected — click a state on the map.</p>
+        ) : (
+          <ul>
+            {visited.map((state) => (
+              <li key={state}>{state}</li>
+            ))}
+          </ul>
         )}
-      </MapContainer>
+      </div>
+
+      <div className='map'>
+        <MapContainer
+          center={[37.8, -96]}
+          zoom={4}
+          style={{ height: '100%', width: '100%' }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+            url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+          />
+          {geoJson && (
+            <GeoJSON
+              data={geoJson}
+              style={style}
+              onEachFeature={onEachFeature}
+            />
+          )}
+        </MapContainer>
+      </div>
     </div>
   );
 }
