@@ -9,8 +9,18 @@
   width: 250px;
   background: #f9f9f9;
   padding: 15px;
-  border-right: 1px solid #ccc;
+  border: 1px solid #ccc;
   overflow-y: auto;
+}
+
+.sidebar.left {
+  border-right: none;
+  border-left: 0;
+}
+
+.sidebar.right {
+  border-left: none;
+  border-right: 0;
 }
 
 .sidebar h3 {
@@ -20,11 +30,22 @@
 .sidebar ul {
   list-style: none;
   padding: 0;
+  margin: 0;
 }
 
 .sidebar li {
   padding: 5px 0;
+  cursor: pointer;
   border-bottom: 1px solid #eee;
+}
+
+.sidebar li.selected {
+  background-color: #d0e0ff;
+  font-weight: bold;
+}
+
+.sidebar li:hover {
+  background-color: #e0e0e0;
 }
 
 .buttons {
@@ -33,6 +54,7 @@
 
 button {
   margin-right: 5px;
+  margin-bottom: 5px;
   padding: 5px 10px;
   font-size: 14px;
   cursor: pointer;
@@ -46,7 +68,19 @@ button:hover {
   flex: 1;
 }
 
-/* Remove Leaflet’s default blue square outline */
+/* Remove Leaflet focus outline */
 .leaflet-interactive:focus {
   outline: none;
+}
+
+/* State labels */
+.state-label span {
+  font-weight: bold;
+  color: black;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 0 2px white;
+  pointer-events: none;
+  display: inline-block;
+  transform: translate(-50%, -50%);
 }
