@@ -60,6 +60,60 @@ const STATE_ABBREVIATIONS = {
   'District of Columbia': 'DC',
 };
 
+const STATE_CAPITALS = {
+  Alabama: 'Montgomery',
+  Alaska: 'Juneau',
+  Arizona: 'Phoenix',
+  Arkansas: 'Little Rock',
+  California: 'Sacramento',
+  Colorado: 'Denver',
+  Connecticut: 'Hartford',
+  Delaware: 'Dover',
+  Florida: 'Tallahassee',
+  Georgia: 'Atlanta',
+  Hawaii: 'Honolulu',
+  Idaho: 'Boise',
+  Illinois: 'Springfield',
+  Indiana: 'Indianapolis',
+  Iowa: 'Des Moines',
+  Kansas: 'Topeka',
+  Kentucky: 'Frankfort',
+  Louisiana: 'Baton Rouge',
+  Maine: 'Augusta',
+  Maryland: 'Annapolis',
+  Massachusetts: 'Boston',
+  Michigan: 'Lansing',
+  Minnesota: 'Saint Paul',
+  Mississippi: 'Jackson',
+  Missouri: 'Jefferson City',
+  Montana: 'Helena',
+  Nebraska: 'Lincoln',
+  Nevada: 'Carson City',
+  'New Hampshire': 'Concord',
+  'New Jersey': 'Trenton',
+  'New Mexico': 'Santa Fe',
+  'New York': 'Albany',
+  'North Carolina': 'Raleigh',
+  'North Dakota': 'Bismarck',
+  Ohio: 'Columbus',
+  Oklahoma: 'Oklahoma City',
+  Oregon: 'Salem',
+  Pennsylvania: 'Harrisburg',
+  'Rhode Island': 'Providence',
+  'South Carolina': 'Columbia',
+  'South Dakota': 'Pierre',
+  Tennessee: 'Nashville',
+  Texas: 'Austin',
+  Utah: 'Salt Lake City',
+  Vermont: 'Montpelier',
+  Virginia: 'Richmond',
+  Washington: 'Olympia',
+  'West Virginia': 'Charleston',
+  Wisconsin: 'Madison',
+  Wyoming: 'Cheyenne',
+  'District of Columbia': 'Washington, D.C.',
+};
+
 function App() {
   const [geoJson, setGeoJson] = useState(null);
   const [visited, setVisited] = useState(() => {
@@ -69,6 +123,7 @@ function App() {
 
   // Quiz state
   const [quizMode, setQuizMode] = useState(false);
+  const [quizType, setQuizType] = useState('state'); // "state" or "capital"
   const [quizState, setQuizState] = useState(null);
   const [options, setOptions] = useState([]);
   const [score, setScore] = useState(0);
@@ -109,7 +164,7 @@ function App() {
 
   const style = (feature) => {
     const name = feature.properties.name;
-    if (quizMode && name === quizState) {
+    if (quizMode && quizType === 'state' && name === quizState) {
       return {
         fillColor: 'yellow',
         weight: 2,
@@ -126,38 +181,61 @@ function App() {
   };
 
   // --- Quiz functions ---
-  const startQuiz = () => {
+  const startQuiz = (type) => {
+    setQuizType(type);
     setScore(0);
     setQuestionIndex(0);
     setFeedback('');
     setShowFinishModal(false);
-    nextQuestion();
+    nextQuestion(type);
     setQuizMode(true);
   };
 
-  const nextQuestion = () => {
+  const exitQuiz = () => {
+    setQuizMode(false);
+    setQuizState(null);
+    setOptions([]);
+    setFeedback('');
+    setQuestionIndex(0);
+    setScore(0);
+  };
+
+  const nextQuestion = (type) => {
     if (!geoJson) return;
     const allStates = geoJson.features.map((f) => f.properties.name);
     const correct = allStates[Math.floor(Math.random() * allStates.length)];
 
-    const wrongStates = allStates
-      .filter((s) => s !== correct)
-      .sort(() => 0.5 - Math.random())
-      .slice(0, 3);
-
-    const choices = [...wrongStates, correct].sort(() => 0.5 - Math.random());
+    let choices = [];
+    if (type === 'state') {
+      const wrongStates = allStates
+        .filter((s) => s !== correct)
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3);
+      choices = [...wrongStates, correct].sort(() => 0.5 - Math.random());
+    } else if (type === 'capital') {
+      const correctCapital = STATE_CAPITALS[correct];
+      const wrongCapitals = Object.values(STATE_CAPITALS)
+        .filter((c) => c !== correctCapital)
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3);
+      choices = [...wrongCapitals, correctCapital].sort(
+        () => 0.5 - Math.random()
+      );
+    }
 
     setQuizState(correct);
     setOptions(choices);
-    setFeedback(''); // reset feedback for new question
+    setFeedback('');
   };
 
   const handleAnswer = (selected) => {
-    if (selected === quizState) {
+    let correctAnswer =
+      quizType === 'state' ? quizState : STATE_CAPITALS[quizState];
+    if (selected === correctAnswer) {
       setScore((prev) => prev + 1);
       setFeedback('✅ Correct!');
     } else {
-      setFeedback(`❌ Wrong! The correct answer was ${quizState}.`);
+      setFeedback(`❌ Wrong! Correct answer: ${correctAnswer}`);
     }
 
     if (questionIndex + 1 >= QUIZ_LENGTH) {
@@ -170,7 +248,7 @@ function App() {
       }, 800);
     } else {
       setQuestionIndex((prev) => prev + 1);
-      setTimeout(nextQuestion, 800); // small delay to show feedback
+      setTimeout(() => nextQuestion(quizType), 800);
     }
   };
 
@@ -190,15 +268,27 @@ function App() {
           <button onClick={clearAll}>Clear</button>
           <button onClick={selectAll}>Select All</button>
           <button onClick={copyToClipboard}>Copy</button>
-          <button onClick={quizMode ? () => setQuizMode(false) : startQuiz}>
-            {quizMode ? 'Exit Quiz' : 'Start Quiz'}
-          </button>
+
+          {!quizMode && (
+            <>
+              <button onClick={() => startQuiz('state')}>
+                Start State Quiz
+              </button>
+              <button onClick={() => startQuiz('capital')}>
+                Start Capital Quiz
+              </button>
+            </>
+          )}
+
+          {quizMode && <button onClick={exitQuiz}>Exit Quiz</button>}
         </div>
+
         {quizMode && (
           <p>
             Score: {score} / {QUIZ_LENGTH}
           </p>
         )}
+
         {!quizMode && (
           <ul>
             {visited.map((state) => (
@@ -250,7 +340,11 @@ function App() {
           <h3>
             Question {questionIndex + 1} of {QUIZ_LENGTH}
           </h3>
-          <p>Which state is highlighted?</p>
+          <p>
+            {quizType === 'state'
+              ? 'Which state is highlighted?'
+              : `What is the capital of ${quizState}?`}
+          </p>
           <ul>
             {options.map((opt) => (
               <li key={opt} onClick={() => handleAnswer(opt)}>
@@ -262,7 +356,6 @@ function App() {
         </div>
       )}
 
-      {/* Custom Finish Modal */}
       {showFinishModal && (
         <div className='modal-overlay'>
           <div className='modal'>
