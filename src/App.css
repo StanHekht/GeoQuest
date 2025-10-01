@@ -177,3 +177,13 @@ button:hover {
     margin-right: 0;
   }
 }
+
+/* Make left sidebar visited states non-clickable */
+.sidebar.left ul li {
+  cursor: default;
+}
+
+/* Remove hover effect for left sidebar visited states */
+.sidebar.left ul li:hover {
+  background-color: inherit;
+}

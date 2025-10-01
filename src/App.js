@@ -114,6 +114,168 @@ const STATE_CAPITALS = {
   'District of Columbia': 'Washington, D.C.',
 };
 
+// Mapping of each state to its neighbors
+const STATE_NEIGHBORS = {
+  Alabama: ['Mississippi', 'Tennessee', 'Georgia', 'Florida'],
+  Alaska: [],
+  Arizona: ['California', 'Nevada', 'Utah', 'Colorado', 'New Mexico'],
+  Arkansas: [
+    'Texas',
+    'Oklahoma',
+    'Missouri',
+    'Tennessee',
+    'Mississippi',
+    'Louisiana',
+  ],
+  California: ['Oregon', 'Nevada', 'Arizona'],
+  Colorado: [
+    'Wyoming',
+    'Nebraska',
+    'Kansas',
+    'Oklahoma',
+    'New Mexico',
+    'Arizona',
+    'Utah',
+  ],
+  Connecticut: ['New York', 'Massachusetts', 'Rhode Island'],
+  Delaware: ['Maryland', 'Pennsylvania', 'New Jersey'],
+  Florida: ['Georgia', 'Alabama'],
+  Georgia: [
+    'Florida',
+    'Alabama',
+    'Tennessee',
+    'North Carolina',
+    'South Carolina',
+  ],
+  Hawaii: [],
+  Idaho: ['Montana', 'Wyoming', 'Utah', 'Nevada', 'Oregon', 'Washington'],
+  Illinois: [
+    'Wisconsin',
+    'Iowa',
+    'Missouri',
+    'Kentucky',
+    'Indiana',
+    'Michigan',
+  ],
+  Indiana: ['Michigan', 'Ohio', 'Kentucky', 'Illinois'],
+  Iowa: [
+    'Minnesota',
+    'Wisconsin',
+    'Illinois',
+    'Missouri',
+    'Nebraska',
+    'South Dakota',
+  ],
+  Kansas: ['Nebraska', 'Missouri', 'Oklahoma', 'Colorado'],
+  Kentucky: [
+    'Illinois',
+    'Indiana',
+    'Ohio',
+    'West Virginia',
+    'Virginia',
+    'Tennessee',
+    'Missouri',
+  ],
+  Louisiana: ['Texas', 'Arkansas', 'Mississippi'],
+  Maine: ['New Hampshire'],
+  Maryland: ['Virginia', 'West Virginia', 'Pennsylvania', 'Delaware'],
+  Massachusetts: [
+    'New York',
+    'Vermont',
+    'New Hampshire',
+    'Connecticut',
+    'Rhode Island',
+  ],
+  Michigan: ['Ohio', 'Indiana', 'Wisconsin', 'Minnesota'],
+  Minnesota: ['North Dakota', 'South Dakota', 'Iowa', 'Wisconsin', 'Michigan'],
+  Mississippi: ['Louisiana', 'Arkansas', 'Tennessee', 'Alabama'],
+  Missouri: [
+    'Iowa',
+    'Illinois',
+    'Kentucky',
+    'Tennessee',
+    'Arkansas',
+    'Oklahoma',
+    'Kansas',
+    'Nebraska',
+  ],
+  Montana: ['North Dakota', 'South Dakota', 'Wyoming', 'Idaho'],
+  Nebraska: [
+    'South Dakota',
+    'Iowa',
+    'Missouri',
+    'Kansas',
+    'Colorado',
+    'Wyoming',
+  ],
+  Nevada: ['Oregon', 'Idaho', 'Utah', 'Arizona', 'California'],
+  'New Hampshire': ['Vermont', 'Maine', 'Massachusetts'],
+  'New Jersey': ['New York', 'Pennsylvania', 'Delaware'],
+  'New Mexico': ['Arizona', 'Utah', 'Colorado', 'Oklahoma', 'Texas'],
+  'New York': [
+    'Pennsylvania',
+    'New Jersey',
+    'Connecticut',
+    'Massachusetts',
+    'Vermont',
+  ],
+  'North Carolina': ['Virginia', 'Tennessee', 'Georgia', 'South Carolina'],
+  'North Dakota': ['Minnesota', 'South Dakota', 'Montana'],
+  Ohio: ['Michigan', 'Indiana', 'Kentucky', 'West Virginia', 'Pennsylvania'],
+  Oklahoma: [
+    'Texas',
+    'New Mexico',
+    'Colorado',
+    'Kansas',
+    'Missouri',
+    'Arkansas',
+  ],
+  Oregon: ['Washington', 'Idaho', 'Nevada', 'California'],
+  Pennsylvania: [
+    'New York',
+    'New Jersey',
+    'Delaware',
+    'Maryland',
+    'West Virginia',
+    'Ohio',
+  ],
+  'Rhode Island': ['Connecticut', 'Massachusetts'],
+  'South Carolina': ['North Carolina', 'Georgia'],
+  'South Dakota': [
+    'North Dakota',
+    'Minnesota',
+    'Iowa',
+    'Nebraska',
+    'Wyoming',
+    'Montana',
+  ],
+  Tennessee: [
+    'Kentucky',
+    'Virginia',
+    'North Carolina',
+    'Georgia',
+    'Alabama',
+    'Mississippi',
+    'Arkansas',
+    'Missouri',
+  ],
+  Texas: ['New Mexico', 'Oklahoma', 'Arkansas', 'Louisiana'],
+  Utah: ['Idaho', 'Wyoming', 'Colorado', 'New Mexico', 'Arizona', 'Nevada'],
+  Vermont: ['New York', 'New Hampshire', 'Massachusetts'],
+  Virginia: [
+    'North Carolina',
+    'Tennessee',
+    'Kentucky',
+    'West Virginia',
+    'Maryland',
+  ],
+  Washington: ['Oregon', 'Idaho'],
+  'West Virginia': ['Ohio', 'Pennsylvania', 'Maryland', 'Virginia', 'Kentucky'],
+  Wisconsin: ['Minnesota', 'Iowa', 'Illinois', 'Michigan'],
+  Wyoming: ['Montana', 'South Dakota', 'Nebraska', 'Colorado', 'Utah', 'Idaho'],
+  'District of Columbia': ['Maryland', 'Virginia'],
+};
+
 function App() {
   const [geoJson, setGeoJson] = useState(null);
   const [visited, setVisited] = useState(() => {
@@ -206,10 +368,23 @@ function App() {
 
     let choices = [];
     if (type === 'state') {
-      const wrongStates = allStates
-        .filter((s) => s !== correct)
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 3);
+      // Get neighbors, fallback to random if not enough
+      const neighbors = STATE_NEIGHBORS[correct] || [];
+      let wrongStates = neighbors.filter((s) => s !== correct);
+      // If not enough neighbors, fill with random close states
+      if (wrongStates.length < 3) {
+        const others = allStates.filter(
+          (s) => s !== correct && !wrongStates.includes(s)
+        );
+        wrongStates = [
+          ...wrongStates,
+          ...others
+            .sort(() => 0.5 - Math.random())
+            .slice(0, 3 - wrongStates.length),
+        ];
+      } else {
+        wrongStates = wrongStates.sort(() => 0.5 - Math.random()).slice(0, 3);
+      }
       choices = [...wrongStates, correct].sort(() => 0.5 - Math.random());
     } else if (type === 'capital') {
       const correctCapital = STATE_CAPITALS[correct];
