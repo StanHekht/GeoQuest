@@ -121,7 +121,6 @@ function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Quiz state
   const [quizMode, setQuizMode] = useState(false);
   const [quizType, setQuizType] = useState('state'); // "state" or "capital"
   const [quizState, setQuizState] = useState(null);
@@ -253,7 +252,6 @@ function App() {
   };
 
   const closeModal = () => setShowFinishModal(false);
-
   const allStates = Object.keys(STATE_ABBREVIATIONS).sort();
 
   return (
