@@ -3,10 +3,8 @@ import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import './App.css';
 
-const GEOJSON_URL =
-  'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json';
-
-const STATE_ABBREVIATIONS = {
+// --- US Data ---
+const US_STATE_ABBREVIATIONS = {
   Alabama: 'AL',
   Alaska: 'AK',
   Arizona: 'AZ',
@@ -60,7 +58,7 @@ const STATE_ABBREVIATIONS = {
   'District of Columbia': 'DC',
 };
 
-const STATE_CAPITALS = {
+const US_STATE_CAPITALS = {
   Alabama: 'Montgomery',
   Alaska: 'Juneau',
   Arizona: 'Phoenix',
@@ -114,8 +112,7 @@ const STATE_CAPITALS = {
   'District of Columbia': 'Washington, D.C.',
 };
 
-// Mapping of each state to its neighbors
-const STATE_NEIGHBORS = {
+const US_STATE_NEIGHBORS = {
   Alabama: ['Mississippi', 'Tennessee', 'Georgia', 'Florida'],
   Alaska: [],
   Arizona: ['California', 'Nevada', 'Utah', 'Colorado', 'New Mexico'],
@@ -276,16 +273,124 @@ const STATE_NEIGHBORS = {
   'District of Columbia': ['Maryland', 'Virginia'],
 };
 
+// --- Canada Data ---
+const CA_PROVINCES = [
+  'Alberta',
+  'British Columbia',
+  'Manitoba',
+  'New Brunswick',
+  'Newfoundland and Labrador',
+  'Nova Scotia',
+  'Ontario',
+  'Prince Edward Island',
+  'Quebec',
+  'Saskatchewan',
+  'Northwest Territories',
+  'Nunavut',
+  'Yukon',
+];
+
+const CA_PROVINCE_ABBREVIATIONS = {
+  Alberta: 'AB',
+  'British Columbia': 'BC',
+  Manitoba: 'MB',
+  'New Brunswick': 'NB',
+  'Newfoundland and Labrador': 'NL',
+  'Nova Scotia': 'NS',
+  Ontario: 'ON',
+  'Prince Edward Island': 'PE',
+  Quebec: 'QC',
+  Saskatchewan: 'SK',
+  'Northwest Territories': 'NT',
+  Nunavut: 'NU',
+  Yukon: 'YT',
+};
+
+const CA_PROVINCE_CAPITALS = {
+  Alberta: 'Edmonton',
+  'British Columbia': 'Victoria',
+  Manitoba: 'Winnipeg',
+  'New Brunswick': 'Fredericton',
+  'Newfoundland and Labrador': "St. John's",
+  'Nova Scotia': 'Halifax',
+  Ontario: 'Toronto',
+  'Prince Edward Island': 'Charlottetown',
+  Quebec: 'Quebec City',
+  Saskatchewan: 'Regina',
+  'Northwest Territories': 'Yellowknife',
+  Nunavut: 'Iqaluit',
+  Yukon: 'Whitehorse',
+};
+
+const CA_PROVINCE_NEIGHBORS = {
+  Alberta: ['British Columbia', 'Saskatchewan', 'Northwest Territories'],
+  'British Columbia': ['Alberta', 'Yukon', 'Northwest Territories'],
+  Manitoba: ['Saskatchewan', 'Ontario', 'Nunavut'],
+  'New Brunswick': ['Quebec', 'Nova Scotia', 'Prince Edward Island'],
+  'Newfoundland and Labrador': ['Quebec'],
+  'Nova Scotia': ['New Brunswick', 'Prince Edward Island'],
+  Ontario: ['Manitoba', 'Quebec'],
+  'Prince Edward Island': ['Nova Scotia', 'New Brunswick'],
+  Quebec: ['Ontario', 'New Brunswick', 'Newfoundland and Labrador', 'Nunavut'],
+  Saskatchewan: ['Alberta', 'Manitoba', 'Northwest Territories'],
+  'Northwest Territories': [
+    'Yukon',
+    'British Columbia',
+    'Alberta',
+    'Saskatchewan',
+    'Nunavut',
+  ],
+  Nunavut: ['Manitoba', 'Quebec', 'Northwest Territories'],
+  Yukon: ['British Columbia', 'Northwest Territories'],
+};
+
+// --- Province Name Normalization ---
+const CA_PROVINCE_NAME_MAP = {
+  Yukon: 'Yukon',
+  'Yukon Territory': 'Yukon',
+  'Northwest Territories': 'Northwest Territories',
+  Nunavut: 'Nunavut',
+  'British Columbia': 'British Columbia',
+  Alberta: 'Alberta',
+  Saskatchewan: 'Saskatchewan',
+  Manitoba: 'Manitoba',
+  Ontario: 'Ontario',
+  Quebec: 'Quebec',
+  'New Brunswick': 'New Brunswick',
+  'Nova Scotia': 'Nova Scotia',
+  'Prince Edward Island': 'Prince Edward Island',
+  'Newfoundland and Labrador': 'Newfoundland and Labrador',
+  Newfoundland: 'Newfoundland and Labrador',
+};
+
+function normalizeProvinceName(name) {
+  return CA_PROVINCE_NAME_MAP[name] || name;
+}
+
+const GEOJSON_URL_US =
+  'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json';
+const GEOJSON_URL_CA =
+  'https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/canada.geojson';
+
 function App() {
-  const [geoJson, setGeoJson] = useState(null);
-  const [visited, setVisited] = useState(() => {
+  const [country, setCountry] = useState('USA'); // 'USA' or 'Canada'
+  const [geoJsonUS, setGeoJsonUS] = useState(null);
+  const [geoJsonCA, setGeoJsonCA] = useState(null);
+
+  // Separate visited lists for each country
+  const [visitedUS, setVisitedUS] = useState(() => {
     const saved = localStorage.getItem('visitedStates');
     return saved ? JSON.parse(saved) : [];
   });
+  const [visitedCA, setVisitedCA] = useState(() => {
+    const saved = localStorage.getItem('visitedProvinces');
+    return saved ? JSON.parse(saved) : [];
+  });
 
+  // Quiz state
   const [quizMode, setQuizMode] = useState(false);
   const [quizType, setQuizType] = useState('state'); // "state" or "capital"
-  const [quizState, setQuizState] = useState(null);
+  const [quizRegion, setQuizRegion] = useState(null);
   const [options, setOptions] = useState([]);
   const [score, setScore] = useState(0);
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -294,38 +399,73 @@ function App() {
   const QUIZ_LENGTH = 10;
 
   useEffect(() => {
-    fetch(GEOJSON_URL)
+    fetch(GEOJSON_URL_US)
       .then((res) => res.json())
-      .then((data) => setGeoJson(data));
+      .then((data) => setGeoJsonUS(data));
+    fetch(GEOJSON_URL_CA)
+      .then((res) => res.json())
+      .then((data) => setGeoJsonCA(data));
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('visitedStates', JSON.stringify(visited));
-  }, [visited]);
+    localStorage.setItem('visitedStates', JSON.stringify(visitedUS));
+  }, [visitedUS]);
+  useEffect(() => {
+    localStorage.setItem('visitedProvinces', JSON.stringify(visitedCA));
+  }, [visitedCA]);
 
-  const toggleState = (name) => {
-    setVisited((prev) =>
-      prev.includes(name) ? prev.filter((s) => s !== name) : [...prev, name]
-    );
+  // --- Region lists ---
+  const allStates = Object.keys(US_STATE_ABBREVIATIONS).sort();
+  const allProvinces = CA_PROVINCES.sort();
+
+  // --- Handlers ---
+  const toggleRegion = (name) => {
+    if (country === 'USA') {
+      setVisitedUS((prev) =>
+        prev.includes(name) ? prev.filter((s) => s !== name) : [...prev, name]
+      );
+    } else {
+      setVisitedCA((prev) =>
+        prev.includes(name) ? prev.filter((s) => s !== name) : [...prev, name]
+      );
+    }
   };
 
-  const clearAll = () => setVisited([]);
-  const selectAll = () => setVisited(Object.keys(STATE_ABBREVIATIONS));
+  const clearAll = () => {
+    if (country === 'USA') setVisitedUS([]);
+    else setVisitedCA([]);
+  };
+  const selectAll = () => {
+    if (country === 'USA') setVisitedUS(allStates);
+    else setVisitedCA(allProvinces);
+  };
   const copyToClipboard = () => {
+    const visited = country === 'USA' ? visitedUS : visitedCA;
     if (visited.length > 0) {
       navigator.clipboard.writeText(visited.join(', '));
-      alert('Copied visited states to clipboard!');
+      alert('Copied visited regions to clipboard!');
     }
   };
 
   const onEachFeature = (feature, layer) => {
-    const name = feature.properties.name;
-    layer.on({ click: () => toggleState(name) });
+    const rawName =
+      feature.properties.name ||
+      feature.properties.PROV ||
+      feature.properties.PRENAME;
+    const canonicalName =
+      country === 'Canada' ? normalizeProvinceName(rawName) : rawName;
+    layer.on({ click: () => toggleRegion(canonicalName) });
   };
 
   const style = (feature) => {
-    const name = feature.properties.name;
-    if (quizMode && quizType === 'state' && name === quizState) {
+    const rawName =
+      feature.properties.name ||
+      feature.properties.PROV ||
+      feature.properties.PRENAME;
+    const canonicalName =
+      country === 'Canada' ? normalizeProvinceName(rawName) : rawName;
+    const visited = country === 'USA' ? visitedUS : visitedCA;
+    if (quizMode && quizType === 'state' && canonicalName === quizRegion) {
       return {
         fillColor: 'yellow',
         weight: 2,
@@ -334,7 +474,7 @@ function App() {
       };
     }
     return {
-      fillColor: visited.includes(name) ? 'blue' : 'lightgray',
+      fillColor: visited.includes(canonicalName) ? 'blue' : 'lightgray',
       weight: 1,
       color: 'black',
       fillOpacity: 0.6,
@@ -354,41 +494,48 @@ function App() {
 
   const exitQuiz = () => {
     setQuizMode(false);
-    setQuizState(null);
+    setQuizRegion(null);
     setOptions([]);
     setFeedback('');
     setQuestionIndex(0);
     setScore(0);
   };
 
+  const getNeighbors = (region) => {
+    if (country === 'USA') return US_STATE_NEIGHBORS[region] || [];
+    return CA_PROVINCE_NEIGHBORS[region] || [];
+  };
+
   const nextQuestion = (type) => {
-    if (!geoJson) return;
-    const allStates = geoJson.features.map((f) => f.properties.name);
-    const correct = allStates[Math.floor(Math.random() * allStates.length)];
+    const all = country === 'USA' ? allStates : allProvinces;
+    const correct = all[Math.floor(Math.random() * all.length)];
 
     let choices = [];
     if (type === 'state') {
-      // Get neighbors, fallback to random if not enough
-      const neighbors = STATE_NEIGHBORS[correct] || [];
-      let wrongStates = neighbors.filter((s) => s !== correct);
-      // If not enough neighbors, fill with random close states
-      if (wrongStates.length < 3) {
-        const others = allStates.filter(
-          (s) => s !== correct && !wrongStates.includes(s)
+      const neighbors = getNeighbors(correct) || [];
+      let wrongRegions = neighbors.filter((s) => s !== correct);
+      if (wrongRegions.length < 3) {
+        const others = all.filter(
+          (s) => s !== correct && !wrongRegions.includes(s)
         );
-        wrongStates = [
-          ...wrongStates,
+        wrongRegions = [
+          ...wrongRegions,
           ...others
             .sort(() => 0.5 - Math.random())
-            .slice(0, 3 - wrongStates.length),
+            .slice(0, 3 - wrongRegions.length),
         ];
       } else {
-        wrongStates = wrongStates.sort(() => 0.5 - Math.random()).slice(0, 3);
+        wrongRegions = wrongRegions.sort(() => 0.5 - Math.random()).slice(0, 3);
       }
-      choices = [...wrongStates, correct].sort(() => 0.5 - Math.random());
+      choices = [...wrongRegions, correct].sort(() => 0.5 - Math.random());
     } else if (type === 'capital') {
-      const correctCapital = STATE_CAPITALS[correct];
-      const wrongCapitals = Object.values(STATE_CAPITALS)
+      const correctCapital =
+        country === 'USA'
+          ? US_STATE_CAPITALS[correct]
+          : CA_PROVINCE_CAPITALS[correct];
+      const wrongCapitals = Object.values(
+        country === 'USA' ? US_STATE_CAPITALS : CA_PROVINCE_CAPITALS
+      )
         .filter((c) => c !== correctCapital)
         .sort(() => 0.5 - Math.random())
         .slice(0, 3);
@@ -397,14 +544,18 @@ function App() {
       );
     }
 
-    setQuizState(correct);
+    setQuizRegion(correct);
     setOptions(choices);
     setFeedback('');
   };
 
   const handleAnswer = (selected) => {
     let correctAnswer =
-      quizType === 'state' ? quizState : STATE_CAPITALS[quizState];
+      quizType === 'state'
+        ? quizRegion
+        : country === 'USA'
+        ? US_STATE_CAPITALS[quizRegion]
+        : CA_PROVINCE_CAPITALS[quizRegion];
     if (selected === correctAnswer) {
       setScore((prev) => prev + 1);
       setFeedback('✅ Correct!');
@@ -416,7 +567,7 @@ function App() {
       setTimeout(() => {
         setShowFinishModal(true);
         setQuizMode(false);
-        setQuizState(null);
+        setQuizRegion(null);
         setOptions([]);
         setFeedback('');
       }, 800);
@@ -427,15 +578,34 @@ function App() {
   };
 
   const closeModal = () => setShowFinishModal(false);
-  const allStates = Object.keys(STATE_ABBREVIATIONS).sort();
 
+  // --- UI ---
   return (
     <div className='container'>
       <div className='sidebar left'>
+        <div className='buttons'>
+          <button
+            onClick={() => setCountry('USA')}
+            style={{
+              fontWeight: country === 'USA' ? 'bold' : 'normal',
+              background: country === 'USA' ? '#d0e0ff' : undefined,
+            }}
+          >
+            USA
+          </button>
+          <button
+            onClick={() => setCountry('Canada')}
+            style={{
+              fontWeight: country === 'Canada' ? 'bold' : 'normal',
+              background: country === 'Canada' ? '#d0e0ff' : undefined,
+            }}
+          >
+            Canada
+          </button>
+        </div>
         <h3>
-          Visited: {visited.filter((s) => s !== 'District of Columbia').length}{' '}
-          / 50 states
-          {visited.includes('District of Columbia') ? ' + DC' : ''}
+          Visited: {country === 'USA' ? visitedUS.length : visitedCA.length} /{' '}
+          {country === 'USA' ? allStates.length : allProvinces.length}
         </h3>
         <div className='buttons'>
           <button onClick={clearAll}>Clear</button>
@@ -445,7 +615,7 @@ function App() {
           {!quizMode && (
             <>
               <button onClick={() => startQuiz('state')}>
-                Start State Quiz
+                Start {country === 'USA' ? 'State' : 'Province'} Quiz
               </button>
               <button onClick={() => startQuiz('capital')}>
                 Start Capital Quiz
@@ -464,8 +634,8 @@ function App() {
 
         {!quizMode && (
           <ul>
-            {visited.map((state) => (
-              <li key={state}>{state}</li>
+            {(country === 'USA' ? visitedUS : visitedCA).map((region) => (
+              <li key={region}>{region}</li>
             ))}
           </ul>
         )}
@@ -473,17 +643,24 @@ function App() {
 
       <div className='map'>
         <MapContainer
-          center={[37.8, -96]}
-          zoom={4}
+          center={country === 'USA' ? [37.8, -96] : [54, -96]}
+          zoom={country === 'USA' ? 4 : 3}
           style={{ height: '100%', width: '100%' }}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
             url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
           />
-          {geoJson && (
+          {country === 'USA' && geoJsonUS && (
             <GeoJSON
-              data={geoJson}
+              data={geoJsonUS}
+              style={style}
+              onEachFeature={onEachFeature}
+            />
+          )}
+          {country === 'Canada' && geoJsonCA && (
+            <GeoJSON
+              data={geoJsonCA}
               style={style}
               onEachFeature={onEachFeature}
             />
@@ -493,15 +670,19 @@ function App() {
 
       {!quizMode && (
         <div className='sidebar right'>
-          <h3>All States</h3>
+          <h3>{country === 'USA' ? 'All States' : 'All Provinces'}</h3>
           <ul>
-            {allStates.map((state) => (
+            {(country === 'USA' ? allStates : allProvinces).map((region) => (
               <li
-                key={state}
-                className={visited.includes(state) ? 'selected' : ''}
-                onClick={() => toggleState(state)}
+                key={region}
+                className={
+                  (country === 'USA' ? visitedUS : visitedCA).includes(region)
+                    ? 'selected'
+                    : ''
+                }
+                onClick={() => toggleRegion(region)}
               >
-                {state}
+                {region}
               </li>
             ))}
           </ul>
@@ -515,8 +696,10 @@ function App() {
           </h3>
           <p>
             {quizType === 'state'
-              ? 'Which state is highlighted?'
-              : `What is the capital of ${quizState}?`}
+              ? `Which ${
+                  country === 'USA' ? 'state' : 'province'
+                } is highlighted?`
+              : `What is the capital of ${quizRegion}?`}
           </p>
           <ul>
             {options.map((opt) => (
