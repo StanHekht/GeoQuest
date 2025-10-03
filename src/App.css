@@ -1,17 +1,22 @@
+/* --- Container --- */
 .container {
   display: flex;
   height: 100vh;
   width: 100vw;
   margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f4f6f8;
+  color: #333;
 }
 
-/* Sidebars */
+/* --- Sidebars --- */
 .sidebar {
   width: 250px;
-  background: #f9f9f9;
+  background: #fff;
   padding: 15px;
-  border: 1px solid #ccc;
+  border: 1px solid #ddd;
   overflow-y: auto;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
 }
 
 .sidebar.left {
@@ -24,6 +29,9 @@
 
 .sidebar h3 {
   margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 16px;
+  color: #444;
 }
 
 .sidebar ul {
@@ -33,9 +41,11 @@
 }
 
 .sidebar li {
-  padding: 5px 0;
+  padding: 6px 10px;
   cursor: pointer;
-  border-bottom: 1px solid #eee;
+  border-radius: 5px;
+  margin-bottom: 5px;
+  transition: background-color 0.2s;
 }
 
 .sidebar li.selected {
@@ -44,27 +54,43 @@
 }
 
 .sidebar li:hover {
-  background-color: #e0e0e0;
+  background-color: #eef3fa;
 }
 
-/* Buttons */
+/* Make left sidebar visited states non-clickable */
+.sidebar.left ul li {
+  cursor: default;
+}
+
+/* Remove hover effect for left sidebar visited states */
+.sidebar.left ul li:hover {
+  background-color: inherit;
+}
+
+/* --- Buttons --- */
 .buttons {
-  margin-bottom: 10px;
+  margin-bottom: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
 button {
-  margin-right: 5px;
-  margin-bottom: 5px;
-  padding: 8px 12px;
+  padding: 8px 14px;
   font-size: 14px;
   cursor: pointer;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+  transition: background-color 0.2s, box-shadow 0.2s;
 }
 
 button:hover {
-  background-color: #e0e0e0;
+  background-color: #e6f0ff;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-/* Map */
+/* --- Map --- */
 .map {
   flex: 1;
   min-height: 300px; /* ensures map renders on desktop */
@@ -75,14 +101,15 @@ button:hover {
   outline: none;
 }
 
-/* Feedback text */
+/* --- Feedback text --- */
 .feedback {
   margin-top: 10px;
-  font-weight: bold;
+  font-weight: 600;
   font-size: 16px;
+  color: #555;
 }
 
-/* Modal */
+/* --- Modal --- */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0;
@@ -94,25 +121,27 @@ button:hover {
 
 .modal {
   background-color: #fff;
-  padding: 25px 35px;
-  border-radius: 10px;
+  padding: 30px 40px;
+  border-radius: 12px;
   text-align: center;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
 }
 
 .modal h2 {
   margin-top: 0;
+  color: #333;
 }
 
 .modal button {
   margin-top: 15px;
-  padding: 8px 16px;
+  padding: 10px 18px;
   font-size: 14px;
   cursor: pointer;
+  border-radius: 6px;
 }
 
 .modal button:hover {
-  background-color: #e0e0e0;
+  background-color: #e6f0ff;
 }
 
 /* --- Mobile responsiveness --- */
@@ -124,22 +153,20 @@ button:hover {
 
   .sidebar {
     width: 100%;
-    max-height: 250px; /* give more space to states list */
+    max-height: 250px;
     border-left: none !important;
     border-right: none !important;
-    border-bottom: 1px solid #ccc;
+    border-bottom: 1px solid #ddd;
   }
 
   .map {
-    height: calc(100vh - 250px - 250px); /* shrink map further */
+    height: calc(100vh - 250px - 250px);
     width: 100%;
-    min-height: 200px; /* don’t let map collapse */
+    min-height: 200px;
   }
 
   .buttons button {
     width: 48%;
-    margin-right: 2%;
-    margin-bottom: 5px;
   }
 
   .sidebar ul {
@@ -152,7 +179,7 @@ button:hover {
     flex: 1 1 48%;
     padding: 8px;
     text-align: center;
-    border: 1px solid #ccc;
+    border: 1px solid #ddd;
     margin-bottom: 5px;
   }
 }
@@ -160,30 +187,20 @@ button:hover {
 /* --- Extra small devices (phones <480px) --- */
 @media (max-width: 480px) {
   .sidebar {
-    max-height: 270px; /* more room on tiny screens */
+    max-height: 270px;
   }
 
   .map {
-    height: calc(100vh - 270px - 270px); /* map even smaller */
+    height: calc(100vh - 270px - 270px);
     min-height: 180px;
   }
 
   .sidebar li {
-    flex: 1 1 100%; /* stack items full width */
+    flex: 1 1 100%;
   }
 
   .buttons button {
     width: 100%;
     margin-right: 0;
   }
-}
-
-/* Make left sidebar visited states non-clickable */
-.sidebar.left ul li {
-  cursor: default;
-}
-
-/* Remove hover effect for left sidebar visited states */
-.sidebar.left ul li:hover {
-  background-color: inherit;
 }
