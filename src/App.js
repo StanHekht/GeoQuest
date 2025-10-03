@@ -97,6 +97,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState(
     () => JSON.parse(localStorage.getItem('currentUser')) || null
   );
+  const [showAbout, setShowAbout] = useState(false);
   const QUIZ_LENGTH = 10;
 
   // --- Fetch GeoJSON ---
@@ -399,6 +400,38 @@ function App() {
         currentUser={currentUser}
         onLogout={handleLogout}
       />
+
+      {/* Compact tagline + About (doesn't push map) */}
+      <div className='top-hero'>
+        <div className='top-hero-inner'>
+          <span className='tagline'>Geography's the Name, Quiz's the Game</span>
+          <div className='top-hero-actions'>
+            <button className='btn' onClick={() => setShowAbout(true)}>
+              About
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* About modal overlays the page so it doesn't resize the map */}
+      {showAbout && (
+        <div className='modal-overlay' onClick={() => setShowAbout(false)}>
+          <div className='modal' onClick={(e) => e.stopPropagation()}>
+            <h2>About GeoQuest</h2>
+            <p>
+              GeoQuest helps you learn geography through exploration and play.
+              Mark regions you've visited, switch between the USA, Canada, and
+              Mexico maps, and take short quizzes on states/provinces, capitals,
+              and city skylines. Sign in (mock) to save progress.
+            </p>
+            <div style={{ marginTop: 12 }}>
+              <button className='btn' onClick={() => setShowAbout(false)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Auth modal (mock) - shown when user clicks Log in / Sign up */}
       {showAuthModal && (
