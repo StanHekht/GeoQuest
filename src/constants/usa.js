@@ -254,9 +254,35 @@ const US_STATE_NEIGHBORS = {
 const GEOJSON_URL_US =
   'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json';
 
+const US_CITY_SKYLINES = {
+  'New York, NY':
+    'https://upload.wikimedia.org/wikipedia/commons/1/14/Lower-Manhattan-New-York-skyline-2014.jpg',
+  'Chicago, IL':
+    'https://upload.wikimedia.org/wikipedia/commons/c/c4/Chicago_skyline%2C_viewed_from_John_Hancock_Center.jpg',
+  'Los Angeles, CA':
+    'https://upload.wikimedia.org/wikipedia/commons/5/57/LA_Skyline_Mountains2.jpg',
+  'San Francisco, CA':
+    'https://upload.wikimedia.org/wikipedia/commons/c/c9/San_Francisco_Night_Skyline.jpg',
+  'Atlanta, GA':
+    'https://upload.wikimedia.org/wikipedia/commons/a/a7/Atlanta_Skyline_from_Buckhead.jpg',
+  'Houston, TX':
+    'https://upload.wikimedia.org/wikipedia/commons/4/44/Panoramic_Houston_skyline.jpg',
+  'New Orleans, LA':
+    'https://upload.wikimedia.org/wikipedia/commons/4/45/New_Orleans_skyline.jpg',
+  'Denver, CO':
+    'https://upload.wikimedia.org/wikipedia/commons/e/e8/Denver_skyline.jpg',
+  'Phoenix, AZ':
+    'https://upload.wikimedia.org/wikipedia/commons/8/8e/Downtown_Phoenix_Skyline_2_%286408553715%29.jpg',
+  'Minneapolis, MN':
+    'https://upload.wikimedia.org/wikipedia/commons/3/31/Minneapolis_Skyline_looking_south.jpg',
+  'San Diego, CA':
+    'https://upload.wikimedia.org/wikipedia/commons/a/a3/San_Diego_Skyline.jpg',
+};
+
 export {
   US_STATE_ABBREVIATIONS,
   US_STATE_CAPITALS,
   US_STATE_NEIGHBORS,
+  US_CITY_SKYLINES,
   GEOJSON_URL_US,
 };

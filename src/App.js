@@ -27,6 +27,33 @@ import {
   GEOJSON_URL_MX,
 } from './constants/mexico';
 
+// --- Skyline quiz data (Wikimedia photos) ---
+
+const US_CITY_SKYLINES = {
+  'New York, NY':
+    'https://upload.wikimedia.org/wikipedia/commons/1/14/Lower-Manhattan-New-York-skyline-2014.jpg',
+  'Chicago, IL':
+    'https://upload.wikimedia.org/wikipedia/commons/c/c4/Chicago_skyline%2C_viewed_from_John_Hancock_Center.jpg',
+  'Los Angeles, CA':
+    'https://upload.wikimedia.org/wikipedia/commons/5/57/LA_Skyline_Mountains2.jpg',
+  'San Francisco, CA':
+    'https://upload.wikimedia.org/wikipedia/commons/c/c9/San_Francisco_Night_Skyline.jpg',
+  'Atlanta, GA':
+    'https://upload.wikimedia.org/wikipedia/commons/a/a7/Atlanta_Skyline_from_Buckhead.jpg',
+  'Houston, TX':
+    'https://upload.wikimedia.org/wikipedia/commons/4/44/Panoramic_Houston_skyline.jpg',
+  'New Orleans, LA':
+    'https://upload.wikimedia.org/wikipedia/commons/4/45/New_Orleans_skyline.jpg',
+  'Denver, CO':
+    'https://upload.wikimedia.org/wikipedia/commons/e/e8/Denver_skyline.jpg',
+  'Phoenix, AZ':
+    'https://upload.wikimedia.org/wikipedia/commons/8/8e/Downtown_Phoenix_Skyline_2_%286408553715%29.jpg',
+  'Minneapolis, MN':
+    'https://upload.wikimedia.org/wikipedia/commons/3/31/Minneapolis_Skyline_looking_south.jpg',
+  'San Diego, CA':
+    'https://upload.wikimedia.org/wikipedia/commons/a/a3/San_Diego_Skyline.jpg',
+};
+
 function normalizeProvinceName(name) {
   return CA_PROVINCE_NAME_MAP[name] || name;
 }
@@ -57,7 +84,7 @@ function App() {
 
   // Quiz state
   const [quizMode, setQuizMode] = useState(false);
-  const [quizType, setQuizType] = useState('state'); // "state" or "capital"
+  const [quizType, setQuizType] = useState('state'); // "state" | "capital" | "city"
   const [quizRegion, setQuizRegion] = useState(null);
   const [options, setOptions] = useState([]);
   const [score, setScore] = useState(0);
@@ -203,6 +230,26 @@ function App() {
   };
 
   const nextQuestion = (type) => {
+    // --- City Skyline Quiz ---
+
+    if (type === 'city') {
+      const allCities = Object.keys(US_CITY_SKYLINES);
+      const correct = allCities[Math.floor(Math.random() * allCities.length)];
+      const wrongCities = allCities
+        .filter((c) => c !== correct)
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3);
+
+      const choices = [...wrongCities, correct].sort(() => 0.5 - Math.random());
+
+      setQuizRegion(correct);
+      setOptions(choices);
+      setFeedback('');
+
+      return;
+    }
+
+    // --- State/Capital Quizzes ---
     const all =
       country === 'USA'
         ? allStates
@@ -257,14 +304,20 @@ function App() {
   };
 
   const handleAnswer = (selected) => {
-    let correctAnswer =
-      quizType === 'state'
-        ? quizRegion
-        : country === 'USA'
-        ? US_STATE_CAPITALS[quizRegion]
-        : country === 'Canada'
-        ? CA_PROVINCE_CAPITALS[quizRegion]
-        : MX_STATE_CAPITALS[quizRegion];
+    let correctAnswer;
+
+    if (quizType === 'state') {
+      correctAnswer = quizRegion;
+    } else if (quizType === 'capital') {
+      correctAnswer =
+        country === 'USA'
+          ? US_STATE_CAPITALS[quizRegion]
+          : country === 'Canada'
+          ? CA_PROVINCE_CAPITALS[quizRegion]
+          : MX_STATE_CAPITALS[quizRegion];
+    } else if (quizType === 'city') {
+      correctAnswer = quizRegion;
+    }
     if (selected === correctAnswer) {
       setScore((prev) => prev + 1);
       setFeedback('✅ Correct!');
@@ -354,6 +407,11 @@ function App() {
               <button onClick={() => startQuiz('capital')}>
                 Start Capital Quiz
               </button>
+              {country === 'USA' && (
+                <button onClick={() => startQuiz('city')}>
+                  Start City Skyline Quiz
+                </button>
+              )}
             </>
           )}
 
@@ -471,8 +529,23 @@ function App() {
                     ? 'province'
                     : 'state'
                 } is highlighted?`
-              : `What is the capital of ${quizRegion}?`}
+              : quizType === 'capital'
+              ? `What is the capital of ${quizRegion}?`
+              : 'Which city skyline is this?'}
           </p>
+          {quizType === 'city' && (
+            <img
+              src={US_CITY_SKYLINES[quizRegion]}
+              alt={quizRegion}
+              style={{
+                width: '100%',
+                borderRadius: '8px',
+                marginBottom: '10px',
+                maxHeight: '250px',
+                objectFit: 'cover',
+              }}
+            />
+          )}
           <ul>
             {options.map((opt) => (
               <li key={opt} onClick={() => handleAnswer(opt)}>
