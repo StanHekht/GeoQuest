@@ -24,7 +24,6 @@ import {
 
 import {
   MX_STATES,
-  MX_STATE_ABBREVIATIONS,
   MX_STATE_CAPITALS,
   MX_STATE_NEIGHBORS,
   MX_STATE_NAME_MAP,
@@ -94,6 +93,10 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
   const [authError, setAuthError] = useState('');
+  // --- Mock auth / current user ---
+  const [currentUser, setCurrentUser] = useState(
+    () => JSON.parse(localStorage.getItem('currentUser')) || null
+  );
   const QUIZ_LENGTH = 10;
 
   // --- Fetch GeoJSON ---
@@ -126,6 +129,81 @@ function App() {
   const allMexicoStates = MX_STATES.sort();
 
   // --- Handlers ---
+
+  // --- Mock users helpers ---
+  const getMockUsers = () =>
+    JSON.parse(localStorage.getItem('mockUsers')) || [
+      { email: 'demo@geoquest.test', password: 'password', name: 'Demo User' },
+    ];
+  const saveMockUsers = (users) =>
+    localStorage.setItem('mockUsers', JSON.stringify(users));
+
+  // --- Auth handlers ---
+  const handleLocalAuth = (e) => {
+    e?.preventDefault();
+    const form = e.target;
+    const email =
+      (form.email && form.email.value && form.email.value.trim()) || '';
+    const password = (form.password && form.password.value) || '';
+    const displayName =
+      (form.displayName &&
+        form.displayName.value &&
+        form.displayName.value.trim()) ||
+      '';
+
+    if (!email || !password) {
+      setAuthError('Please provide email and password');
+      return;
+    }
+
+    const users = getMockUsers();
+    if (authMode === 'login') {
+      const user = users.find(
+        (u) =>
+          u.email.toLowerCase() === email.toLowerCase() &&
+          u.password === password
+      );
+      if (user) {
+        const safe = { email: user.email, name: user.name };
+        setCurrentUser(safe);
+        localStorage.setItem('currentUser', JSON.stringify(safe));
+        setAuthError('');
+        setShowAuthModal(false);
+      } else setAuthError('Invalid email or password');
+    } else {
+      // signup
+      if (users.find((u) => u.email.toLowerCase() === email.toLowerCase())) {
+        setAuthError('Account already exists for that email');
+        return;
+      }
+      const newUser = {
+        email,
+        password,
+        name: displayName || email.split('@')[0],
+      };
+      users.push(newUser);
+      saveMockUsers(users);
+      const safe = { email: newUser.email, name: newUser.name };
+      setCurrentUser(safe);
+      localStorage.setItem('currentUser', JSON.stringify(safe));
+      setAuthError('');
+      setShowAuthModal(false);
+    }
+  };
+
+  const handleGoogleAuth = () => {
+    // mock Google sign-in
+    const googleUser = { email: 'google@geoquest.test', name: 'Google User' };
+    setCurrentUser(googleUser);
+    localStorage.setItem('currentUser', JSON.stringify(googleUser));
+    setAuthError('');
+    setShowAuthModal(false);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('currentUser');
+  };
   const toggleRegion = (name) => {
     if (country === 'USA')
       setVisitedUS((prev) =>
@@ -318,6 +396,8 @@ function App() {
           setAuthError('');
           setShowAuthModal(true);
         }}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
       {/* Auth modal (mock) - shown when user clicks Log in / Sign up */}
@@ -325,21 +405,8 @@ function App() {
         <AuthModal
           mode={authMode}
           onClose={() => setShowAuthModal(false)}
-          onLocalAuth={(e) => {
-            e?.preventDefault();
-            setAuthError('');
-            // mock success
-            alert(
-              `Mock: ${authMode === 'login' ? 'Signed in' : 'Account created'}`
-            );
-            setShowAuthModal(false);
-          }}
-          onGoogleAuth={() => {
-            // mock Google flow
-            setAuthError('');
-            alert('Mock: Signed in with Google');
-            setShowAuthModal(false);
-          }}
+          onLocalAuth={handleLocalAuth}
+          onGoogleAuth={handleGoogleAuth}
           error={authError}
         />
       )}

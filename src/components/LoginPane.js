@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function LoginPane({ onOpenAuth }) {
+export default function LoginPane({ onOpenAuth, currentUser, onLogout }) {
   return (
     <header
       className='top-bar'
@@ -20,101 +20,63 @@ export default function LoginPane({ onOpenAuth }) {
         <h1 style={{ margin: 0, fontSize: 18 }}>GeoQuest</h1>
       </div>
 
-      <form
+      <div
         className='login-pane'
-        style={{ display: 'flex', gap: 8, alignItems: 'center' }}
-        aria-label='Login (mock)'
-        onSubmit={(e) => e.preventDefault()}
-        autoComplete='off'
+        aria-label='Login area'
+        style={{ display: 'flex', alignItems: 'center', gap: 8 }}
       >
-        {/* invisible dummy inputs to discourage browser autofill */}
-        <input
-          type='text'
-          name='prevent_autofill_username'
-          style={{ display: 'none' }}
-          autoComplete='username'
-        />
-        <input
-          type='password'
-          name='prevent_autofill_password'
-          style={{ display: 'none' }}
-          autoComplete='new-password'
-        />
+        {currentUser ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-end',
+              }}
+            >
+              <span style={{ fontWeight: 700 }}>{currentUser.name}</span>
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                {currentUser.email}
+              </span>
+            </div>
+            <button
+              type='button'
+              className='btn outline'
+              onClick={onLogout}
+              aria-label='Log out'
+            >
+              Log out
+            </button>
+          </div>
+        ) : (
+          <>
+            <button
+              type='button'
+              className='btn primary'
+              onClick={() => onOpenAuth && onOpenAuth('login')}
+            >
+              Log in
+            </button>
 
-        <input
-          className='compact-hide'
-          type='text'
-          name='username'
-          placeholder='Username'
-          aria-label='Username'
-          autoComplete='off'
-          style={{
-            padding: '6px 8px',
-            borderRadius: 4,
-            border: '1px solid #ccc',
-            minWidth: 120,
-          }}
-        />
-        <input
-          className='compact-hide'
-          type='password'
-          name='password'
-          placeholder='Password'
-          aria-label='Password'
-          autoComplete='new-password'
-          style={{
-            padding: '6px 8px',
-            borderRadius: 4,
-            border: '1px solid #ccc',
-            minWidth: 120,
-          }}
-        />
+            <button
+              type='button'
+              className='btn outline'
+              onClick={() => onOpenAuth && onOpenAuth('signup')}
+            >
+              Sign up
+            </button>
 
-        <button
-          type='button'
-          onClick={() => onOpenAuth && onOpenAuth('login')}
-          style={{
-            padding: '6px 10px',
-            borderRadius: 4,
-            border: 'none',
-            background: '#0078D4',
-            color: '#fff',
-            cursor: 'pointer',
-          }}
-        >
-          Log in
-        </button>
-
-        <button
-          type='button'
-          onClick={() => onOpenAuth && onOpenAuth('signup')}
-          style={{
-            padding: '6px 10px',
-            borderRadius: 4,
-            border: '1px solid #ccc',
-            background: '#fff',
-            cursor: 'pointer',
-          }}
-        >
-          Sign up
-        </button>
-        {/* compact auth button visible on small screens */}
-        <button
-          type='button'
-          className='auth-compact'
-          onClick={() => onOpenAuth && onOpenAuth('login')}
-          style={{
-            padding: '6px 10px',
-            borderRadius: 4,
-            border: 'none',
-            background: '#0078D4',
-            color: '#fff',
-            cursor: 'pointer',
-          }}
-        >
-          Sign in
-        </button>
-      </form>
+            {/* compact auth button visible on small screens */}
+            <button
+              type='button'
+              className='auth-compact btn primary'
+              onClick={() => onOpenAuth && onOpenAuth('login')}
+            >
+              Sign in
+            </button>
+          </>
+        )}
+      </div>
     </header>
   );
 }

@@ -119,8 +119,25 @@ export default function AuthModal({
         </div>
 
         <div style={{ marginTop: 12, fontSize: 13, color: '#666' }}>
-          By continuing you agree to our <a href='#'>Terms</a> and{' '}
-          <a href='#'>Privacy</a>.
+          By continuing you agree to our{' '}
+          <button
+            type='button'
+            className='btn ghost'
+            onClick={() => alert('Terms (mock)')}
+            style={{ padding: 0 }}
+          >
+            Terms
+          </button>{' '}
+          and{' '}
+          <button
+            type='button'
+            className='btn ghost'
+            onClick={() => alert('Privacy (mock)')}
+            style={{ padding: 0 }}
+          >
+            Privacy
+          </button>
+          .
         </div>
       </form>
     </Modal>
