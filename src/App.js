@@ -28,37 +28,59 @@ import {
   GEOJSON_URL_MX,
 } from './constants/mexico';
 
-function normalizeProvinceName(name) {
-  return CA_PROVINCE_NAME_MAP[name] || name;
-}
+// --- Helpers ---
+const normalizeProvinceName = (name) => CA_PROVINCE_NAME_MAP[name] || name;
+const normalizeMexicoStateName = (name) => MX_STATE_NAME_MAP[name] || name;
 
-function normalizeMexicoStateName(name) {
-  return MX_STATE_NAME_MAP[name] || name;
-}
+const getVisitedList = (country, visitedUS, visitedCA, visitedMX) =>
+  country === 'USA' ? visitedUS : country === 'Canada' ? visitedCA : visitedMX;
+
+const getAllRegions = (country, allStates, allProvinces, allMexicoStates) =>
+  country === 'USA'
+    ? allStates
+    : country === 'Canada'
+    ? allProvinces
+    : allMexicoStates;
+
+const getNeighbors = (country, region) =>
+  country === 'USA'
+    ? US_STATE_NEIGHBORS[region] || []
+    : country === 'Canada'
+    ? CA_PROVINCE_NEIGHBORS[region] || []
+    : MX_STATE_NEIGHBORS[region] || [];
+
+const getCapital = (country, region) =>
+  country === 'USA'
+    ? US_STATE_CAPITALS[region]
+    : country === 'Canada'
+    ? CA_PROVINCE_CAPITALS[region]
+    : MX_STATE_CAPITALS[region];
+
+const normalizeRegionName = (country, name) =>
+  country === 'Canada'
+    ? normalizeProvinceName(name)
+    : country === 'Mexico'
+    ? normalizeMexicoStateName(name)
+    : name;
 
 function App() {
-  const [country, setCountry] = useState('USA'); // 'USA', 'Canada', 'Mexico'
+  const [country, setCountry] = useState('USA');
   const [geoJsonUS, setGeoJsonUS] = useState(null);
   const [geoJsonCA, setGeoJsonCA] = useState(null);
   const [geoJsonMX, setGeoJsonMX] = useState(null);
 
-  // Separate visited lists for each country
-  const [visitedUS, setVisitedUS] = useState(() => {
-    const saved = localStorage.getItem('visitedStates');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [visitedCA, setVisitedCA] = useState(() => {
-    const saved = localStorage.getItem('visitedProvinces');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [visitedMX, setVisitedMX] = useState(() => {
-    const saved = localStorage.getItem('visitedMexicoStates');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [visitedUS, setVisitedUS] = useState(
+    () => JSON.parse(localStorage.getItem('visitedStates')) || []
+  );
+  const [visitedCA, setVisitedCA] = useState(
+    () => JSON.parse(localStorage.getItem('visitedProvinces')) || []
+  );
+  const [visitedMX, setVisitedMX] = useState(
+    () => JSON.parse(localStorage.getItem('visitedMexicoStates')) || []
+  );
 
-  // Quiz state
   const [quizMode, setQuizMode] = useState(false);
-  const [quizType, setQuizType] = useState('state'); // "state" | "capital" | "city"
+  const [quizType, setQuizType] = useState('state');
   const [quizRegion, setQuizRegion] = useState(null);
   const [options, setOptions] = useState([]);
   const [score, setScore] = useState(0);
@@ -67,18 +89,20 @@ function App() {
   const [showFinishModal, setShowFinishModal] = useState(false);
   const QUIZ_LENGTH = 10;
 
+  // --- Fetch GeoJSON ---
   useEffect(() => {
     fetch(GEOJSON_URL_US)
       .then((res) => res.json())
-      .then((data) => setGeoJsonUS(data));
+      .then(setGeoJsonUS);
     fetch(GEOJSON_URL_CA)
       .then((res) => res.json())
-      .then((data) => setGeoJsonCA(data));
+      .then(setGeoJsonCA);
     fetch(GEOJSON_URL_MX)
       .then((res) => res.json())
-      .then((data) => setGeoJsonMX(data));
+      .then(setGeoJsonMX);
   }, []);
 
+  // --- Persist visited lists ---
   useEffect(() => {
     localStorage.setItem('visitedStates', JSON.stringify(visitedUS));
   }, [visitedUS]);
@@ -89,26 +113,25 @@ function App() {
     localStorage.setItem('visitedMexicoStates', JSON.stringify(visitedMX));
   }, [visitedMX]);
 
-  // --- Region lists ---
+  // --- Region data ---
   const allStates = Object.keys(US_STATE_ABBREVIATIONS).sort();
   const allProvinces = CA_PROVINCES.sort();
   const allMexicoStates = MX_STATES.sort();
 
   // --- Handlers ---
   const toggleRegion = (name) => {
-    if (country === 'USA') {
+    if (country === 'USA')
       setVisitedUS((prev) =>
         prev.includes(name) ? prev.filter((s) => s !== name) : [...prev, name]
       );
-    } else if (country === 'Canada') {
+    else if (country === 'Canada')
       setVisitedCA((prev) =>
         prev.includes(name) ? prev.filter((s) => s !== name) : [...prev, name]
       );
-    } else {
+    else
       setVisitedMX((prev) =>
         prev.includes(name) ? prev.filter((s) => s !== name) : [...prev, name]
       );
-    }
   };
 
   const clearAll = () => {
@@ -121,13 +144,9 @@ function App() {
     else if (country === 'Canada') setVisitedCA(allProvinces);
     else setVisitedMX(allMexicoStates);
   };
+
   const copyToClipboard = () => {
-    const visited =
-      country === 'USA'
-        ? visitedUS
-        : country === 'Canada'
-        ? visitedCA
-        : visitedMX;
+    const visited = getVisitedList(country, visitedUS, visitedCA, visitedMX);
     if (visited.length > 0) {
       navigator.clipboard.writeText(visited.join(', '));
       alert('Copied visited regions to clipboard!');
@@ -140,9 +159,7 @@ function App() {
       feature.properties.PROV ||
       feature.properties.PRENAME ||
       feature.properties.NOM_ENT;
-    let canonicalName = rawName;
-    if (country === 'Canada') canonicalName = normalizeProvinceName(rawName);
-    if (country === 'Mexico') canonicalName = normalizeMexicoStateName(rawName);
+    const canonicalName = normalizeRegionName(country, rawName);
     layer.on({ click: () => toggleRegion(canonicalName) });
   };
 
@@ -152,15 +169,9 @@ function App() {
       feature.properties.PROV ||
       feature.properties.PRENAME ||
       feature.properties.NOM_ENT;
-    let canonicalName = rawName;
-    if (country === 'Canada') canonicalName = normalizeProvinceName(rawName);
-    if (country === 'Mexico') canonicalName = normalizeMexicoStateName(rawName);
-    const visited =
-      country === 'USA'
-        ? visitedUS
-        : country === 'Canada'
-        ? visitedCA
-        : visitedMX;
+    const canonicalName = normalizeRegionName(country, rawName);
+    const visited = getVisitedList(country, visitedUS, visitedCA, visitedMX);
+
     if (quizMode && quizType === 'state' && canonicalName === quizRegion) {
       return {
         fillColor: 'yellow',
@@ -177,7 +188,7 @@ function App() {
     };
   };
 
-  // --- Quiz functions ---
+  // --- Quiz logic ---
   const startQuiz = (type) => {
     setQuizType(type);
     setScore(0);
@@ -187,7 +198,6 @@ function App() {
     nextQuestion(type);
     setQuizMode(true);
   };
-
   const exitQuiz = () => {
     setQuizMode(false);
     setQuizRegion(null);
@@ -197,15 +207,7 @@ function App() {
     setScore(0);
   };
 
-  const getNeighbors = (region) => {
-    if (country === 'USA') return US_STATE_NEIGHBORS[region] || [];
-    if (country === 'Canada') return CA_PROVINCE_NEIGHBORS[region] || [];
-    return MX_STATE_NEIGHBORS[region] || [];
-  };
-
   const nextQuestion = (type) => {
-    // --- City Skyline Quiz ---
-
     if (type === 'city') {
       const allCities = Object.keys(US_CITY_SKYLINES);
       const correct = allCities[Math.floor(Math.random() * allCities.length)];
@@ -213,29 +215,25 @@ function App() {
         .filter((c) => c !== correct)
         .sort(() => 0.5 - Math.random())
         .slice(0, 3);
-
-      const choices = [...wrongCities, correct].sort(() => 0.5 - Math.random());
-
       setQuizRegion(correct);
-      setOptions(choices);
+      setOptions([...wrongCities, correct].sort(() => 0.5 - Math.random()));
       setFeedback('');
-
       return;
     }
 
-    // --- State/Capital Quizzes ---
-    const all =
-      country === 'USA'
-        ? allStates
-        : country === 'Canada'
-        ? allProvinces
-        : allMexicoStates;
+    const all = getAllRegions(
+      country,
+      allStates,
+      allProvinces,
+      allMexicoStates
+    );
     const correct = all[Math.floor(Math.random() * all.length)];
 
     let choices = [];
     if (type === 'state') {
-      const neighbors = getNeighbors(correct) || [];
-      let wrongRegions = neighbors.filter((s) => s !== correct);
+      let wrongRegions = getNeighbors(country, correct).filter(
+        (s) => s !== correct
+      );
       if (wrongRegions.length < 3) {
         const others = all.filter(
           (s) => s !== correct && !wrongRegions.includes(s)
@@ -246,17 +244,11 @@ function App() {
             .sort(() => 0.5 - Math.random())
             .slice(0, 3 - wrongRegions.length),
         ];
-      } else {
+      } else
         wrongRegions = wrongRegions.sort(() => 0.5 - Math.random()).slice(0, 3);
-      }
       choices = [...wrongRegions, correct].sort(() => 0.5 - Math.random());
     } else if (type === 'capital') {
-      const correctCapital =
-        country === 'USA'
-          ? US_STATE_CAPITALS[correct]
-          : country === 'Canada'
-          ? CA_PROVINCE_CAPITALS[correct]
-          : MX_STATE_CAPITALS[correct];
+      const correctCapital = getCapital(country, correct);
       const wrongCapitals = Object.values(
         country === 'USA'
           ? US_STATE_CAPITALS
@@ -278,34 +270,20 @@ function App() {
   };
 
   const handleAnswer = (selected) => {
-    let correctAnswer;
+    let correctAnswer =
+      quizType === 'state' || quizType === 'city'
+        ? quizRegion
+        : getCapital(country, quizRegion);
 
-    if (quizType === 'state') {
-      correctAnswer = quizRegion;
-    } else if (quizType === 'capital') {
-      correctAnswer =
-        country === 'USA'
-          ? US_STATE_CAPITALS[quizRegion]
-          : country === 'Canada'
-          ? CA_PROVINCE_CAPITALS[quizRegion]
-          : MX_STATE_CAPITALS[quizRegion];
-    } else if (quizType === 'city') {
-      correctAnswer = quizRegion;
-    }
     if (selected === correctAnswer) {
       setScore((prev) => prev + 1);
       setFeedback('✅ Correct!');
-    } else {
-      setFeedback(`❌ Wrong! Correct answer: ${correctAnswer}`);
-    }
+    } else setFeedback(`❌ Wrong! Correct answer: ${correctAnswer}`);
 
     if (questionIndex + 1 >= QUIZ_LENGTH) {
       setTimeout(() => {
         setShowFinishModal(true);
-        setQuizMode(false);
-        setQuizRegion(null);
-        setOptions([]);
-        setFeedback('');
+        exitQuiz();
       }, 800);
     } else {
       setQuestionIndex((prev) => prev + 1);
@@ -316,52 +294,36 @@ function App() {
   const closeModal = () => setShowFinishModal(false);
 
   // --- UI ---
+  const visitedList = getVisitedList(country, visitedUS, visitedCA, visitedMX);
+  const allRegions = getAllRegions(
+    country,
+    allStates,
+    allProvinces,
+    allMexicoStates
+  );
+
   return (
     <div className='container'>
       <div className='sidebar left'>
         <div className='buttons'>
-          <button
-            onClick={() => setCountry('USA')}
-            style={{
-              fontWeight: country === 'USA' ? 'bold' : 'normal',
-              background: country === 'USA' ? '#d0e0ff' : undefined,
-            }}
-          >
-            USA
-          </button>
-          <button
-            onClick={() => setCountry('Canada')}
-            style={{
-              fontWeight: country === 'Canada' ? 'bold' : 'normal',
-              background: country === 'Canada' ? '#d0e0ff' : undefined,
-            }}
-          >
-            Canada
-          </button>
-          <button
-            onClick={() => setCountry('Mexico')}
-            style={{
-              fontWeight: country === 'Mexico' ? 'bold' : 'normal',
-              background: country === 'Mexico' ? '#d0e0ff' : undefined,
-            }}
-          >
-            Mexico
-          </button>
+          {['USA', 'Canada', 'Mexico'].map((c) => (
+            <button
+              key={c}
+              onClick={() => setCountry(c)}
+              style={{
+                fontWeight: country === c ? 'bold' : 'normal',
+                background: country === c ? '#d0e0ff' : undefined,
+              }}
+            >
+              {c}
+            </button>
+          ))}
         </div>
+
         <h3>
-          Visited:{' '}
-          {country === 'USA'
-            ? visitedUS.length
-            : country === 'Canada'
-            ? visitedCA.length
-            : visitedMX.length}{' '}
-          /{' '}
-          {country === 'USA'
-            ? allStates.length
-            : country === 'Canada'
-            ? allProvinces.length
-            : allMexicoStates.length}
+          Visited: {visitedList.length} / {allRegions.length}
         </h3>
+
         <div className='buttons'>
           <button onClick={clearAll}>Clear</button>
           <button onClick={selectAll}>Select All</button>
@@ -370,13 +332,7 @@ function App() {
           {!quizMode && (
             <>
               <button onClick={() => startQuiz('state')}>
-                Start{' '}
-                {country === 'USA'
-                  ? 'State'
-                  : country === 'Canada'
-                  ? 'Province'
-                  : 'State'}{' '}
-                Quiz
+                Start {country === 'Canada' ? 'Province' : 'State'} Quiz
               </button>
               <button onClick={() => startQuiz('capital')}>
                 Start Capital Quiz
@@ -388,7 +344,6 @@ function App() {
               )}
             </>
           )}
-
           {quizMode && <button onClick={exitQuiz}>Exit Quiz</button>}
         </div>
 
@@ -400,12 +355,7 @@ function App() {
 
         {!quizMode && (
           <ul>
-            {(country === 'USA'
-              ? visitedUS
-              : country === 'Canada'
-              ? visitedCA
-              : visitedMX
-            ).map((region) => (
+            {visitedList.map((region) => (
               <li key={region}>{region}</li>
             ))}
           </ul>
@@ -452,84 +402,68 @@ function App() {
         </MapContainer>
       </div>
 
-      {!quizMode && (
-        <div className='sidebar right'>
-          <h3>
-            {country === 'USA'
-              ? 'All States'
-              : country === 'Canada'
-              ? 'All Provinces'
-              : 'All States'}
-          </h3>
-          <ul>
-            {(country === 'USA'
-              ? allStates
-              : country === 'Canada'
-              ? allProvinces
-              : allMexicoStates
-            ).map((region) => (
-              <li
-                key={region}
-                className={
-                  (country === 'USA'
-                    ? visitedUS
-                    : country === 'Canada'
-                    ? visitedCA
-                    : visitedMX
-                  ).includes(region)
-                    ? 'selected'
-                    : ''
-                }
-                onClick={() => toggleRegion(region)}
-              >
-                {region}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {quizMode && options.length > 0 && (
-        <div className='sidebar right'>
-          <h3>
-            Question {questionIndex + 1} of {QUIZ_LENGTH}
-          </h3>
-          <p>
-            {quizType === 'state'
-              ? `Which ${
-                  country === 'USA'
-                    ? 'state'
-                    : country === 'Canada'
-                    ? 'province'
-                    : 'state'
-                } is highlighted?`
-              : quizType === 'capital'
-              ? `What is the capital of ${quizRegion}?`
-              : 'Which city skyline is this?'}
-          </p>
-          {quizType === 'city' && (
-            <img
-              src={US_CITY_SKYLINES[quizRegion]}
-              alt={quizRegion}
-              style={{
-                width: '100%',
-                borderRadius: '8px',
-                marginBottom: '10px',
-                maxHeight: '250px',
-                objectFit: 'cover',
-              }}
-            />
-          )}
-          <ul>
-            {options.map((opt) => (
-              <li key={opt} onClick={() => handleAnswer(opt)}>
-                {opt}
-              </li>
-            ))}
-          </ul>
-          {feedback && <p className='feedback'>{feedback}</p>}
-        </div>
-      )}
+      {/* Right Sidebar */}
+      <div className='sidebar right'>
+        {!quizMode && (
+          <>
+            <h3>
+              {country === 'USA'
+                ? 'All States'
+                : country === 'Canada'
+                ? 'All Provinces'
+                : 'All States'}
+            </h3>
+            <ul>
+              {allRegions.map((region) => (
+                <li
+                  key={region}
+                  className={visitedList.includes(region) ? 'selected' : ''}
+                  onClick={() => toggleRegion(region)}
+                >
+                  {region}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {quizMode && options.length > 0 && (
+          <>
+            <h3>
+              Question {questionIndex + 1} of {QUIZ_LENGTH}
+            </h3>
+            <p>
+              {quizType === 'state'
+                ? `Which ${
+                    country === 'Canada' ? 'province' : 'state'
+                  } is highlighted?`
+                : quizType === 'capital'
+                ? `What is the capital of ${quizRegion}?`
+                : 'Which city skyline is this?'}
+            </p>
+            {quizType === 'city' && (
+              <img
+                src={US_CITY_SKYLINES[quizRegion]}
+                alt={quizRegion}
+                style={{
+                  width: '100%',
+                  borderRadius: '8px',
+                  marginBottom: '10px',
+                  maxHeight: '250px',
+                  objectFit: 'cover',
+                }}
+              />
+            )}
+            <ul>
+              {options.map((opt) => (
+                <li key={opt} onClick={() => handleAnswer(opt)}>
+                  {opt}
+                </li>
+              ))}
+            </ul>
+            {feedback && <p className='feedback'>{feedback}</p>}
+          </>
+        )}
+      </div>
 
       {showFinishModal && (
         <div className='modal-overlay'>
