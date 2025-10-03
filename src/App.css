@@ -144,6 +144,35 @@ button:hover {
   background-color: #e6f0ff;
 }
 
+/* Top bar / login pane styles */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e6e6e6;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.login-pane { display: flex; gap: 8px; align-items: center; }
+.login-pane input { padding: 6px 8px; border-radius: 4px; border: 1px solid #ccc; }
+
+/* responsive top-bar */
+@media (max-width: 600px) {
+  .top-bar { padding: 8px; }
+  .login-pane { gap: 6px; }
+  /* hide text inputs on small screens and show a single auth button */
+  .login-pane .compact-hide { display: none; }
+  .login-pane .auth-compact { display: inline-flex; }
+}
+
+@media (min-width: 601px) {
+  .login-pane .auth-compact { display: none; }
+}
+
 /* --- Mobile responsiveness --- */
 @media (max-width: 768px) {
   .container {

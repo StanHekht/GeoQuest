@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
+import LoginPane from './components/LoginPane';
+import AuthModal from './components/modals/AuthModal';
+import FinishModal from './components/modals/FinishModal';
 import 'leaflet/dist/leaflet.css';
 import './App.css';
 
@@ -87,6 +90,10 @@ function App() {
   const [questionIndex, setQuestionIndex] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [showFinishModal, setShowFinishModal] = useState(false);
+  // --- Auth modal state (LoginPane / AuthModal) ---
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
+  const [authError, setAuthError] = useState('');
   const QUIZ_LENGTH = 10;
 
   // --- Fetch GeoJSON ---
@@ -303,179 +310,205 @@ function App() {
   );
 
   return (
-    <div className='container'>
-      <div className='sidebar left'>
-        <div className='buttons'>
-          {['USA', 'Canada', 'Mexico'].map((c) => (
-            <button
-              key={c}
-              onClick={() => setCountry(c)}
-              style={{
-                fontWeight: country === c ? 'bold' : 'normal',
-                background: country === c ? '#d0e0ff' : undefined,
-              }}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
+    <div className='app-root'>
+      {/* Top login pane (component) */}
+      <LoginPane
+        onOpenAuth={(mode) => {
+          setAuthMode(mode);
+          setAuthError('');
+          setShowAuthModal(true);
+        }}
+      />
 
-        <h3>
-          Visited: {visitedList.length} / {allRegions.length}
-        </h3>
+      {/* Auth modal (mock) - shown when user clicks Log in / Sign up */}
+      {showAuthModal && (
+        <AuthModal
+          mode={authMode}
+          onClose={() => setShowAuthModal(false)}
+          onLocalAuth={(e) => {
+            e?.preventDefault();
+            setAuthError('');
+            // mock success
+            alert(
+              `Mock: ${authMode === 'login' ? 'Signed in' : 'Account created'}`
+            );
+            setShowAuthModal(false);
+          }}
+          onGoogleAuth={() => {
+            // mock Google flow
+            setAuthError('');
+            alert('Mock: Signed in with Google');
+            setShowAuthModal(false);
+          }}
+          error={authError}
+        />
+      )}
+      <div className='container'>
+        <div className='sidebar left'>
+          <div className='buttons'>
+            {['USA', 'Canada', 'Mexico'].map((c) => (
+              <button
+                key={c}
+                onClick={() => setCountry(c)}
+                style={{
+                  fontWeight: country === c ? 'bold' : 'normal',
+                  background: country === c ? '#d0e0ff' : undefined,
+                }}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
 
-        <div className='buttons'>
-          <button onClick={clearAll}>Clear</button>
-          <button onClick={selectAll}>Select All</button>
-          <button onClick={copyToClipboard}>Copy</button>
+          <h3>
+            Visited: {visitedList.length} / {allRegions.length}
+          </h3>
+
+          <div className='buttons'>
+            <button onClick={clearAll}>Clear</button>
+            <button onClick={selectAll}>Select All</button>
+            <button onClick={copyToClipboard}>Copy</button>
+
+            {!quizMode && (
+              <>
+                <button onClick={() => startQuiz('state')}>
+                  Start {country === 'Canada' ? 'Province' : 'State'} Quiz
+                </button>
+                <button onClick={() => startQuiz('capital')}>
+                  Start Capital Quiz
+                </button>
+                {country === 'USA' && (
+                  <button onClick={() => startQuiz('city')}>
+                    Start City Skyline Quiz
+                  </button>
+                )}
+              </>
+            )}
+            {quizMode && <button onClick={exitQuiz}>Exit Quiz</button>}
+          </div>
+
+          {quizMode && (
+            <p>
+              Score: {score} / {QUIZ_LENGTH}
+            </p>
+          )}
 
           {!quizMode && (
-            <>
-              <button onClick={() => startQuiz('state')}>
-                Start {country === 'Canada' ? 'Province' : 'State'} Quiz
-              </button>
-              <button onClick={() => startQuiz('capital')}>
-                Start Capital Quiz
-              </button>
-              {country === 'USA' && (
-                <button onClick={() => startQuiz('city')}>
-                  Start City Skyline Quiz
-                </button>
-              )}
-            </>
-          )}
-          {quizMode && <button onClick={exitQuiz}>Exit Quiz</button>}
-        </div>
-
-        {quizMode && (
-          <p>
-            Score: {score} / {QUIZ_LENGTH}
-          </p>
-        )}
-
-        {!quizMode && (
-          <ul>
-            {visitedList.map((region) => (
-              <li key={region}>{region}</li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div className='map'>
-        <MapContainer
-          center={
-            country === 'USA'
-              ? [37.8, -96]
-              : country === 'Canada'
-              ? [54, -96]
-              : [23.6345, -102.5528]
-          }
-          zoom={country === 'USA' ? 4 : country === 'Canada' ? 3 : 5}
-          style={{ height: '100%', width: '100%' }}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
-            url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-          />
-          {country === 'USA' && geoJsonUS && (
-            <GeoJSON
-              data={geoJsonUS}
-              style={style}
-              onEachFeature={onEachFeature}
-            />
-          )}
-          {country === 'Canada' && geoJsonCA && (
-            <GeoJSON
-              data={geoJsonCA}
-              style={style}
-              onEachFeature={onEachFeature}
-            />
-          )}
-          {country === 'Mexico' && geoJsonMX && (
-            <GeoJSON
-              data={geoJsonMX}
-              style={style}
-              onEachFeature={onEachFeature}
-            />
-          )}
-        </MapContainer>
-      </div>
-
-      {/* Right Sidebar */}
-      <div className='sidebar right'>
-        {!quizMode && (
-          <>
-            <h3>
-              {country === 'USA'
-                ? 'All States'
-                : country === 'Canada'
-                ? 'All Provinces'
-                : 'All States'}
-            </h3>
             <ul>
-              {allRegions.map((region) => (
-                <li
-                  key={region}
-                  className={visitedList.includes(region) ? 'selected' : ''}
-                  onClick={() => toggleRegion(region)}
-                >
-                  {region}
-                </li>
+              {visitedList.map((region) => (
+                <li key={region}>{region}</li>
               ))}
             </ul>
-          </>
-        )}
-        {quizMode && options.length > 0 && (
-          <>
-            <h3>
-              Question {questionIndex + 1} of {QUIZ_LENGTH}
-            </h3>
-            <p>
-              {quizType === 'state'
-                ? `Which ${
-                    country === 'Canada' ? 'province' : 'state'
-                  } is highlighted?`
-                : quizType === 'capital'
-                ? `What is the capital of ${quizRegion}?`
-                : 'Which city skyline is this?'}
-            </p>
-            {quizType === 'city' && (
-              <img
-                src={US_CITY_SKYLINES[quizRegion]}
-                alt={quizRegion}
-                style={{
-                  width: '100%',
-                  borderRadius: '8px',
-                  marginBottom: '10px',
-                  maxHeight: '250px',
-                  objectFit: 'cover',
-                }}
+          )}
+        </div>
+
+        <div className='map'>
+          <MapContainer
+            center={
+              country === 'USA'
+                ? [37.8, -96]
+                : country === 'Canada'
+                ? [54, -96]
+                : [23.6345, -102.5528]
+            }
+            zoom={country === 'USA' ? 4 : country === 'Canada' ? 3 : 5}
+            style={{ height: '100%', width: '100%' }}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+              url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+            />
+            {country === 'USA' && geoJsonUS && (
+              <GeoJSON
+                data={geoJsonUS}
+                style={style}
+                onEachFeature={onEachFeature}
               />
             )}
-            <ul>
-              {options.map((opt) => (
-                <li key={opt} onClick={() => handleAnswer(opt)}>
-                  {opt}
-                </li>
-              ))}
-            </ul>
-            {feedback && <p className='feedback'>{feedback}</p>}
-          </>
+            {country === 'Canada' && geoJsonCA && (
+              <GeoJSON
+                data={geoJsonCA}
+                style={style}
+                onEachFeature={onEachFeature}
+              />
+            )}
+            {country === 'Mexico' && geoJsonMX && (
+              <GeoJSON
+                data={geoJsonMX}
+                style={style}
+                onEachFeature={onEachFeature}
+              />
+            )}
+          </MapContainer>
+        </div>
+
+        {/* Right Sidebar */}
+        <div className='sidebar right'>
+          {!quizMode && (
+            <>
+              <h3>
+                {country === 'USA'
+                  ? 'All States'
+                  : country === 'Canada'
+                  ? 'All Provinces'
+                  : 'All States'}
+              </h3>
+              <ul>
+                {allRegions.map((region) => (
+                  <li
+                    key={region}
+                    className={visitedList.includes(region) ? 'selected' : ''}
+                    onClick={() => toggleRegion(region)}
+                  >
+                    {region}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {quizMode && options.length > 0 && (
+            <>
+              <h3>
+                Question {questionIndex + 1} of {QUIZ_LENGTH}
+              </h3>
+              <p>
+                {quizType === 'state'
+                  ? `Which ${
+                      country === 'Canada' ? 'province' : 'state'
+                    } is highlighted?`
+                  : quizType === 'capital'
+                  ? `What is the capital of ${quizRegion}?`
+                  : 'Which city skyline is this?'}
+              </p>
+              {quizType === 'city' && (
+                <img
+                  src={US_CITY_SKYLINES[quizRegion]}
+                  alt={quizRegion}
+                  style={{
+                    width: '100%',
+                    borderRadius: '8px',
+                    marginBottom: '10px',
+                    maxHeight: '250px',
+                    objectFit: 'cover',
+                  }}
+                />
+              )}
+              <ul>
+                {options.map((opt) => (
+                  <li key={opt} onClick={() => handleAnswer(opt)}>
+                    {opt}
+                  </li>
+                ))}
+              </ul>
+              {feedback && <p className='feedback'>{feedback}</p>}
+            </>
+          )}
+        </div>
+
+        {showFinishModal && (
+          <FinishModal score={score} total={QUIZ_LENGTH} onClose={closeModal} />
         )}
       </div>
-
-      {showFinishModal && (
-        <div className='modal-overlay'>
-          <div className='modal'>
-            <h2>Quiz Finished!</h2>
-            <p>
-              Your score: {score} / {QUIZ_LENGTH}
-            </p>
-            <button onClick={closeModal}>Close</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
